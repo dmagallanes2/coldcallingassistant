@@ -55,10 +55,22 @@ def log_call(business_name, notes, result, reason):
     })
 
 def calculate_statistics(df):
-    """Calculate call statistics"""
+    """Calculate call statistics including time-based metrics"""
     total_calls = len(df)
     if total_calls == 0:
         return None
+    
+    # Convert timestamp strings to datetime objects
+    df['datetime'] = pd.to_datetime(df['timestamp'])
+    
+    # Calculate time-based metrics
+    time_diff = df['datetime'].max() - df['datetime'].min()
+    total_hours = time_diff.total_seconds() / 3600  # Convert to hours
+    calls_per_hour = total_calls / total_hours if total_hours > 0 else total_calls
+    
+    # Format time difference for display
+    hours = int(time_diff.total_seconds() // 3600)
+    minutes = int((time_diff.total_seconds() % 3600) // 60)
     
     # Calculate percentages
     interested_pct = (df['result'] == 'Interested').mean() * 100
@@ -75,15 +87,27 @@ def calculate_statistics(df):
         'total_calls': total_calls,
         'interested_pct': interested_pct,
         'rejected_pct': rejected_pct,
-        'reason_pcts': reason_pcts
+        'reason_pcts': reason_pcts,
+        'duration_hours': hours,
+        'duration_minutes': minutes,
+        'calls_per_hour': calls_per_hour,
+        'start_time': df['datetime'].min().strftime('%I:%M %p'),
+        'end_time': df['datetime'].max().strftime('%I:%M %p')
     }
     
     return stats
 
 def create_report_text(stats, date):
-    """Create a text report with statistics"""
+    """Create a text report with statistics including time metrics"""
     report = f"""Cold Calling Report - {date}
 {'='*50}
+
+TIME STATISTICS
+--------------
+Session Duration: {stats['duration_hours']} hours, {stats['duration_minutes']} minutes
+Start Time: {stats['start_time']}
+End Time: {stats['end_time']}
+Calls Per Hour: {stats['calls_per_hour']:.1f}
 
 CALL STATISTICS SUMMARY
 ----------------------
@@ -187,10 +211,21 @@ with col2:
         stats = calculate_statistics(df)
         if stats:
             st.subheader("Statistics")
+            
+            # Time metrics
+            st.write("⏱️ Time Statistics")
+            st.write(f"Session Duration: {stats['duration_hours']} hours, {stats['duration_minutes']} minutes")
+            st.write(f"Start Time: {stats['start_time']}")
+            st.write(f"End Time: {stats['end_time']}")
+            st.write(f"Calls Per Hour: {stats['calls_per_hour']:.1f}")
+            
+            # Call metrics
+            st.write("📊 Call Statistics")
             st.write(f"Total Calls: {stats['total_calls']}")
             st.write(f"Interested: {stats['interested_pct']:.1f}%")
             st.write(f"Rejected: {stats['rejected_pct']:.1f}%")
-            st.write("Reason Breakdown:")
+            
+            st.write("📋 Reason Breakdown:")
             for reason, pct in stats['reason_pcts'].items():
                 st.write(f"{reason}: {pct:.1f}%")
             
