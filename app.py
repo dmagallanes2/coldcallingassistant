@@ -3,8 +3,12 @@ import os
 from pathlib import Path
 import pandas as pd
 from datetime import datetime
-from fpdf import FPDF
-import numpy as np
+import io
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
 
 # Set page configuration
 st.set_page_config(
@@ -59,7 +63,7 @@ def calculate_statistics(df):
     """Calculate call statistics"""
     total_calls = len(df)
     if total_calls == 0:
-        return "No calls logged yet."
+        return None
     
     # Calculate percentages
     interested_pct = (df['result'] == 'Interested').mean() * 100
@@ -82,35 +86,51 @@ def calculate_statistics(df):
     return stats
 
 def create_pdf_report(stats, date):
-    """Create PDF report with statistics"""
-    pdf = FPDF()
-    pdf.add_page()
+    """Create PDF report with statistics using reportlab"""
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter)
+    styles = getSampleStyleSheet()
     
-    # Set up the PDF
-    pdf.set_font('Arial', 'B', 16)
-    pdf.cell(0, 10, f'Cold Calling Report - {date}', ln=True, align='C')
-    pdf.ln(10)
+    # Create custom style for title
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=24,
+        spaceAfter=30
+    )
     
-    # Add statistics
-    pdf.set_font('Arial', 'B', 14)
-    pdf.cell(0, 10, 'Call Statistics Summary:', ln=True)
-    pdf.ln(5)
+    # Create custom style for sections
+    section_style = ParagraphStyle(
+        'CustomSection',
+        parent=styles['Heading2'],
+        fontSize=16,
+        spaceAfter=12,
+        spaceBefore=20
+    )
     
-    pdf.set_font('Arial', '', 12)
-    pdf.cell(0, 10, f'Total Calls: {stats["total_calls"]}', ln=True)
-    pdf.cell(0, 10, f'Interested: {stats["interested_pct"]:.1f}%', ln=True)
-    pdf.cell(0, 10, f'Rejected: {stats["rejected_pct"]:.1f}%', ln=True)
+    # Create story (content)
+    story = []
     
-    pdf.ln(10)
-    pdf.set_font('Arial', 'B', 14)
-    pdf.cell(0, 10, 'Reason Breakdown:', ln=True)
-    pdf.ln(5)
+    # Add title
+    story.append(Paragraph(f"Cold Calling Report - {date}", title_style))
     
-    pdf.set_font('Arial', '', 12)
+    # Add main statistics
+    story.append(Paragraph("Call Statistics Summary", section_style))
+    story.append(Paragraph(f"Total Calls: {stats['total_calls']}", styles['Normal']))
+    story.append(Paragraph(f"Interested: {stats['interested_pct']:.1f}%", styles['Normal']))
+    story.append(Paragraph(f"Rejected: {stats['rejected_pct']:.1f}%", styles['Normal']))
+    
+    story.append(Spacer(1, 20))
+    
+    # Add reason breakdown
+    story.append(Paragraph("Reason Breakdown", section_style))
     for reason, pct in stats['reason_pcts'].items():
-        pdf.cell(0, 10, f'{reason}: {pct:.1f}%', ln=True)
+        story.append(Paragraph(f"{reason}: {pct:.1f}%", styles['Normal']))
     
-    return pdf
+    # Build PDF
+    doc.build(story)
+    buffer.seek(0)
+    return buffer
 
 # Main app layout
 st.title("Cold Calling Assistant 📞")
@@ -196,43 +216,42 @@ with col2:
             }
         )
         
-        # Display statistics
-        st.subheader("Statistics")
+        # Calculate and display statistics
         stats = calculate_statistics(df)
-        
-        # Show live statistics in the app
-        st.write(f"Total Calls: {stats['total_calls']}")
-        st.write(f"Interested: {stats['interested_pct']:.1f}%")
-        st.write(f"Rejected: {stats['rejected_pct']:.1f}%")
-        st.write("Reason Breakdown:")
-        for reason, pct in stats['reason_pcts'].items():
-            st.write(f"{reason}: {pct:.1f}%")
-        
-        # Export functionality
-        col1, col2 = st.columns(2)
-        
-        current_date = datetime.now().strftime("%Y-%m-%d")
-        
-        # CSV Export
-        with col1:
-            csv_filename = f"call_log_{current_date}.csv"
-            st.download_button(
-                label="Download Call Log (CSV)",
-                data=df.to_csv(index=False),
-                file_name=csv_filename,
-                mime="text/csv"
-            )
-        
-        # PDF Export
-        with col2:
-            pdf_filename = f"call_report_{current_date}.pdf"
-            pdf = create_pdf_report(stats, current_date)
-            st.download_button(
-                label="Download Report (PDF)",
-                data=pdf.output(dest='S').encode('latin-1'),
-                file_name=pdf_filename,
-                mime="application/pdf"
-            )
+        if stats:
+            st.subheader("Statistics")
+            st.write(f"Total Calls: {stats['total_calls']}")
+            st.write(f"Interested: {stats['interested_pct']:.1f}%")
+            st.write(f"Rejected: {stats['rejected_pct']:.1f}%")
+            st.write("Reason Breakdown:")
+            for reason, pct in stats['reason_pcts'].items():
+                st.write(f"{reason}: {pct:.1f}%")
+            
+            # Export functionality
+            col1, col2 = st.columns(2)
+            
+            current_date = datetime.now().strftime("%Y-%m-%d")
+            
+            # CSV Export
+            with col1:
+                csv_filename = f"call_log_{current_date}.csv"
+                st.download_button(
+                    label="Download Call Log (CSV)",
+                    data=df.to_csv(index=False),
+                    file_name=csv_filename,
+                    mime="text/csv"
+                )
+            
+            # PDF Export
+            with col2:
+                pdf_filename = f"call_report_{current_date}.pdf"
+                pdf_buffer = create_pdf_report(stats, current_date)
+                st.download_button(
+                    label="Download Report (PDF)",
+                    data=pdf_buffer,
+                    file_name=pdf_filename,
+                    mime="application/pdf"
+                )
 
 # Footer
 st.markdown("---")
