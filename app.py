@@ -4,11 +4,6 @@ from pathlib import Path
 import pandas as pd
 from datetime import datetime
 import io
-from reportlab.lib import colors
-from reportlab.lib.pagesizes import letter
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import inch
 
 # Set page configuration
 st.set_page_config(
@@ -85,52 +80,24 @@ def calculate_statistics(df):
     
     return stats
 
-def create_pdf_report(stats, date):
-    """Create PDF report with statistics using reportlab"""
-    buffer = io.BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=letter)
-    styles = getSampleStyleSheet()
+def create_report_text(stats, date):
+    """Create a text report with statistics"""
+    report = f"""Cold Calling Report - {date}
+{'='*50}
+
+CALL STATISTICS SUMMARY
+----------------------
+Total Calls: {stats['total_calls']}
+Interested: {stats['interested_pct']:.1f}%
+Rejected: {stats['rejected_pct']:.1f}%
+
+REASON BREAKDOWN
+--------------"""
     
-    # Create custom style for title
-    title_style = ParagraphStyle(
-        'CustomTitle',
-        parent=styles['Heading1'],
-        fontSize=24,
-        spaceAfter=30
-    )
-    
-    # Create custom style for sections
-    section_style = ParagraphStyle(
-        'CustomSection',
-        parent=styles['Heading2'],
-        fontSize=16,
-        spaceAfter=12,
-        spaceBefore=20
-    )
-    
-    # Create story (content)
-    story = []
-    
-    # Add title
-    story.append(Paragraph(f"Cold Calling Report - {date}", title_style))
-    
-    # Add main statistics
-    story.append(Paragraph("Call Statistics Summary", section_style))
-    story.append(Paragraph(f"Total Calls: {stats['total_calls']}", styles['Normal']))
-    story.append(Paragraph(f"Interested: {stats['interested_pct']:.1f}%", styles['Normal']))
-    story.append(Paragraph(f"Rejected: {stats['rejected_pct']:.1f}%", styles['Normal']))
-    
-    story.append(Spacer(1, 20))
-    
-    # Add reason breakdown
-    story.append(Paragraph("Reason Breakdown", section_style))
     for reason, pct in stats['reason_pcts'].items():
-        story.append(Paragraph(f"{reason}: {pct:.1f}%", styles['Normal']))
+        report += f"\n{reason}: {pct:.1f}%"
     
-    # Build PDF
-    doc.build(story)
-    buffer.seek(0)
-    return buffer
+    return report
 
 # Main app layout
 st.title("Cold Calling Assistant 📞")
@@ -242,15 +209,15 @@ with col2:
                     mime="text/csv"
                 )
             
-            # PDF Export
+            # Text Report Export
             with col2:
-                pdf_filename = f"call_report_{current_date}.pdf"
-                pdf_buffer = create_pdf_report(stats, current_date)
+                report_filename = f"call_report_{current_date}.txt"
+                report_text = create_report_text(stats, current_date)
                 st.download_button(
-                    label="Download Report (PDF)",
-                    data=pdf_buffer,
-                    file_name=pdf_filename,
-                    mime="application/pdf"
+                    label="Download Report (TXT)",
+                    data=report_text,
+                    file_name=report_filename,
+                    mime="text/plain"
                 )
 
 # Footer
