@@ -1,8 +1,6 @@
 import streamlit as st
 import os
 from pathlib import Path
-import time
-from pygame import mixer
 import pandas as pd
 from datetime import datetime
 
@@ -38,21 +36,7 @@ def save_uploaded_file(uploaded_file):
     file_path = save_dir / uploaded_file.name
     with open(file_path, "wb") as f:
         f.write(uploaded_file.getbuffer())
-    return str(file_path)
-
-def play_audio(file_path):
-    """Play audio file using pygame mixer"""
-    try:
-        mixer.init()
-        mixer.music.load(file_path)
-        mixer.music.play()
-        while mixer.music.get_busy():
-            time.sleep(0.1)
-    except Exception as e:
-        st.error(f"Error playing audio: {str(e)}")
-    finally:
-        mixer.music.unload()
-        mixer.quit()
+    return uploaded_file
 
 def log_call(business_name, notes):
     """Add a new call to the call log"""
@@ -88,20 +72,18 @@ with col1:
             )
             
             if st.button("Add Audio Clip"):
-                file_path = save_uploaded_file(uploaded_file)
-                st.session_state.audio_files[button_name] = file_path
+                audio_file = save_uploaded_file(uploaded_file)
+                st.session_state.audio_files[button_name] = audio_file
                 st.success(f"✅ Added audio clip: {button_name}")
                 st.rerun()
     
     # Audio playback section
     st.subheader("Play Audio Clips")
     if st.session_state.audio_files:
-        # Create a grid of buttons
-        cols = st.columns(2)  # 2 buttons per row
-        for idx, (button_name, file_path) in enumerate(st.session_state.audio_files.items()):
-            with cols[idx % 2]:
-                if st.button(f"▶️ {button_name}", key=f"btn_{button_name}", use_container_width=True):
-                    play_audio(file_path)
+        # Create a grid of buttons and audio players
+        for button_name, audio_file in st.session_state.audio_files.items():
+            st.write(f"**{button_name}**")
+            st.audio(audio_file, format='audio/mp3')
     else:
         st.info("👆 Start by uploading some audio clips above!")
 
