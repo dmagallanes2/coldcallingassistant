@@ -4,6 +4,7 @@ from pathlib import Path
 import pandas as pd
 from datetime import datetime
 import io
+import pytz
 
 # Set page configuration
 st.set_page_config(
@@ -17,6 +18,9 @@ if 'audio_files' not in st.session_state:
     st.session_state.audio_files = {}
 if 'call_log' not in st.session_state:
     st.session_state.call_log = []
+
+# Define PST timezone
+pst = pytz.timezone('America/Los_Angeles')
 
 # Custom CSS
 st.markdown("""
@@ -44,8 +48,9 @@ def save_uploaded_file(uploaded_file):
     return uploaded_file
 
 def log_call(business_name, notes, result, reason):
-    """Add a new call to the call log"""
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    """Add a new call to the call log with PST timestamp"""
+    # Get current time in PST
+    timestamp = datetime.now(pst).strftime("%Y-%m-%d %H:%M:%S")
     st.session_state.call_log.append({
         "timestamp": timestamp,
         "business": business_name,
@@ -55,13 +60,13 @@ def log_call(business_name, notes, result, reason):
     })
 
 def calculate_statistics(df):
-    """Calculate call statistics including time-based metrics"""
+    """Calculate call statistics including time-based metrics in PST"""
     total_calls = len(df)
     if total_calls == 0:
         return None
     
-    # Convert timestamp strings to datetime objects
-    df['datetime'] = pd.to_datetime(df['timestamp'])
+    # Convert timestamp strings to datetime objects in PST
+    df['datetime'] = pd.to_datetime(df['timestamp']).dt.tz_localize(pst)
     
     # Calculate time-based metrics
     time_diff = df['datetime'].max() - df['datetime'].min()
@@ -91,8 +96,8 @@ def calculate_statistics(df):
         'duration_hours': hours,
         'duration_minutes': minutes,
         'calls_per_hour': calls_per_hour,
-        'start_time': df['datetime'].min().strftime('%I:%M %p'),
-        'end_time': df['datetime'].max().strftime('%I:%M %p')
+        'start_time': df['datetime'].min().strftime('%I:%M %p PST'),
+        'end_time': df['datetime'].max().strftime('%I:%M %p PST')
     }
     
     return stats
@@ -232,7 +237,7 @@ with col2:
             # Export functionality
             col1, col2 = st.columns(2)
             
-            current_date = datetime.now().strftime("%Y-%m-%d")
+            current_date = datetime.now(pst).strftime("%Y-%m-%d")
             
             # CSV Export
             with col1:
