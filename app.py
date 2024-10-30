@@ -236,11 +236,15 @@ with col1:
     if uploaded_files:
         save_uploaded_files(uploaded_files)
     
-# Audio playback section
+    # Audio playback section
     st.subheader("Play Audio Clips")
     if st.session_state.audio_files:
-        # Initialize pygame mixer
-        mixer.init()
+        # Create container for audio player
+        audio_container = st.empty()
+        
+        # Initialize session state for currently playing audio
+        if 'current_audio_id' not in st.session_state:
+            st.session_state.current_audio_id = None
         
         # Sort files numerically
         sorted_files = sorted(st.session_state.audio_files.items(), 
@@ -250,12 +254,34 @@ with col1:
         total_files = len(sorted_files)
         mid_point = (total_files + 1) // 2
         
+        # Insert JavaScript for audio control
+        st.markdown("""
+            <script>
+                var currentAudio = null;
+                
+                function stopCurrentAudio() {
+                    if (currentAudio) {
+                        currentAudio.pause();
+                        currentAudio.currentTime = 0;
+                    }
+                }
+                
+                function playNewAudio(elementId) {
+                    stopCurrentAudio();
+                    currentAudio = document.getElementById(elementId);
+                    if (currentAudio) {
+                        currentAudio.play();
+                    }
+                }
+            </script>
+            """, unsafe_allow_html=True)
+        
         # Create columns for the 2-column grid layout
         left_col, right_col = st.columns(2)
         
         # Left column (first half of numbers)
         with left_col:
-            for filename, audio_file in sorted_files[:mid_point]:
+            for idx, (filename, audio_file) in enumerate(sorted_files[:mid_point]):
                 button_label = os.path.splitext(filename)[0]
                 # Truncate long names
                 if len(button_label) > 20:
@@ -268,19 +294,24 @@ with col1:
                     key=f"btn_{filename}",
                     help=button_label
                 ):
-                    # Stop any playing audio
-                    mixer.music.stop()
-                    # Create temporary file for pygame
-                    with tempfile.NamedTemporaryFile(delete=False, suffix='.mp3') as temp_file:
-                        temp_file.write(audio_file.getbuffer())
-                        audio_file.seek(0)
-                        # Load and play audio
-                        mixer.music.load(temp_file.name)
-                        mixer.music.play()
+                    # Read audio file and encode to base64
+                    audio_bytes = audio_file.read()
+                    audio_base64 = base64.b64encode(audio_bytes).decode()
+                    audio_file.seek(0)  # Reset file pointer
+                    
+                    # Create hidden audio element with autoplay
+                    audio_html = f"""
+                    <div style="display: none;">
+                        <audio id="audio_{idx}" autoplay>
+                            <source src="data:audio/mp3;base64,{audio_base64}" type="audio/mp3">
+                        </audio>
+                    </div>
+                    """
+                    audio_container.markdown(audio_html, unsafe_allow_html=True)
         
         # Right column (second half of numbers)
         with right_col:
-            for filename, audio_file in sorted_files[mid_point:]:
+            for idx, (filename, audio_file) in enumerate(sorted_files[mid_point:], start=mid_point):
                 button_label = os.path.splitext(filename)[0]
                 # Truncate long names
                 if len(button_label) > 20:
@@ -293,15 +324,20 @@ with col1:
                     key=f"btn_{filename}",
                     help=button_label
                 ):
-                    # Stop any playing audio
-                    mixer.music.stop()
-                    # Create temporary file for pygame
-                    with tempfile.NamedTemporaryFile(delete=False, suffix='.mp3') as temp_file:
-                        temp_file.write(audio_file.getbuffer())
-                        audio_file.seek(0)
-                        # Load and play audio
-                        mixer.music.load(temp_file.name)
-                        mixer.music.play()
+                    # Read audio file and encode to base64
+                    audio_bytes = audio_file.read()
+                    audio_base64 = base64.b64encode(audio_bytes).decode()
+                    audio_file.seek(0)  # Reset file pointer
+                    
+                    # Create hidden audio element with autoplay
+                    audio_html = f"""
+                    <div style="display: none;">
+                        <audio id="audio_{idx}" autoplay>
+                            <source src="data:audio/mp3;base64,{audio_base64}" type="audio/mp3">
+                        </audio>
+                    </div>
+                    """
+                    audio_container.markdown(audio_html, unsafe_allow_html=True)
     else:
         st.info("👆 Drop your audio files above to get started!")
         
