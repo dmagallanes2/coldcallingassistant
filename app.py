@@ -5,6 +5,7 @@ import pandas as pd
 from datetime import datetime
 import io
 import pytz
+import base64
 
 # Set page configuration
 st.set_page_config(
@@ -236,8 +237,8 @@ with col1:
     # Audio playback section
     st.subheader("Play Audio Clips")
     if st.session_state.audio_files:
-        # Create hidden containers for audio elements (one per button)
-        audio_containers = {name: st.empty() for name in st.session_state.audio_files.keys()}
+        # Create a hidden audio player
+        audio_player = st.empty()
         
         # Sort files numerically
         sorted_files = sorted(st.session_state.audio_files.items(), 
@@ -260,18 +261,23 @@ with col1:
                 else:
                     display_label = button_label
                 
-                # Create button and handle click
                 if st.button(
                     f"🎵\n{display_label}",
                     key=f"btn_{filename}",
                     help=button_label
                 ):
-                    # Stop all currently playing audio
-                    for container in audio_containers.values():
-                        container.empty()
-                    # Play new audio in its container
-                    audio_containers[filename].audio(audio_file, format='audio/mp3', start_time=0)
-        
+                    # Convert audio file to base64
+                    audio_bytes = audio_file.read()
+                    audio_base64 = base64.b64encode(audio_bytes).decode()
+                    
+                    # Create auto-playing audio element
+                    audio_html = f"""
+                        <audio autoplay style="display: none">
+                            <source src="data:audio/mp3;base64,{audio_base64}" type="audio/mp3">
+                        </audio>
+                        """
+                    audio_player.markdown(audio_html, unsafe_allow_html=True)
+                    
         # Right column (second half of numbers)
         with right_col:
             for filename, audio_file in sorted_files[mid_point:]:
@@ -282,17 +288,22 @@ with col1:
                 else:
                     display_label = button_label
                 
-                # Create button and handle click
                 if st.button(
                     f"🎵\n{display_label}",
                     key=f"btn_{filename}",
                     help=button_label
                 ):
-                    # Stop all currently playing audio
-                    for container in audio_containers.values():
-                        container.empty()
-                    # Play new audio in its container
-                    audio_containers[filename].audio(audio_file, format='audio/mp3', start_time=0)
+                    # Convert audio file to base64
+                    audio_bytes = audio_file.read()
+                    audio_base64 = base64.b64encode(audio_bytes).decode()
+                    
+                    # Create auto-playing audio element
+                    audio_html = f"""
+                        <audio autoplay style="display: none">
+                            <source src="data:audio/mp3;base64,{audio_base64}" type="audio/mp3">
+                        </audio>
+                        """
+                    audio_player.markdown(audio_html, unsafe_allow_html=True)
     else:
         st.info("👆 Drop your audio files above to get started!")
         
