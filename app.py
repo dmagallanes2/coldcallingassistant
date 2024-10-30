@@ -236,8 +236,8 @@ with col1:
     # Audio playback section
     st.subheader("Play Audio Clips")
     if st.session_state.audio_files:
-        # Create hidden container for audio elements
-        audio_placeholder = st.empty()
+        # Create hidden containers for audio elements (one per button)
+        audio_containers = {name: st.empty() for name in st.session_state.audio_files.keys()}
         
         # Sort files numerically
         sorted_files = sorted(st.session_state.audio_files.items(), 
@@ -245,7 +245,7 @@ with col1:
         
         # Split files into two lists for left and right columns
         total_files = len(sorted_files)
-        mid_point = (total_files + 1) // 2  # Using ceiling division to handle odd numbers
+        mid_point = (total_files + 1) // 2
         
         # Create columns for the 2-column grid layout
         left_col, right_col = st.columns(2)
@@ -260,16 +260,17 @@ with col1:
                 else:
                     display_label = button_label
                 
+                # Create button and handle click
                 if st.button(
                     f"🎵\n{display_label}",
                     key=f"btn_{filename}",
                     help=button_label
                 ):
-                    # Clear previous audio and play new
-                    audio_placeholder.empty()
-                    if st.session_state.current_audio != filename:
-                        st.session_state.current_audio = filename
-                        audio_placeholder.audio(audio_file, format='audio/mp3')
+                    # Stop all currently playing audio
+                    for container in audio_containers.values():
+                        container.empty()
+                    # Play new audio in its container
+                    audio_containers[filename].audio(audio_file, format='audio/mp3', start_time=0)
         
         # Right column (second half of numbers)
         with right_col:
@@ -281,19 +282,20 @@ with col1:
                 else:
                     display_label = button_label
                 
+                # Create button and handle click
                 if st.button(
                     f"🎵\n{display_label}",
                     key=f"btn_{filename}",
                     help=button_label
                 ):
-                    # Clear previous audio and play new
-                    audio_placeholder.empty()
-                    if st.session_state.current_audio != filename:
-                        st.session_state.current_audio = filename
-                        audio_placeholder.audio(audio_file, format='audio/mp3')
+                    # Stop all currently playing audio
+                    for container in audio_containers.values():
+                        container.empty()
+                    # Play new audio in its container
+                    audio_containers[filename].audio(audio_file, format='audio/mp3', start_time=0)
     else:
         st.info("👆 Drop your audio files above to get started!")
-
+        
 with col2:
     st.header("Call Logger")
     
