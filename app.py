@@ -234,12 +234,9 @@ with col1:
     if uploaded_files:
         save_uploaded_files(uploaded_files)
     
-    # Audio playback section
+# Audio playback section
     st.subheader("Play Audio Clips")
     if st.session_state.audio_files:
-        # Create a hidden audio player
-        audio_player = st.empty()
-        
         # Sort files numerically
         sorted_files = sorted(st.session_state.audio_files.items(), 
                             key=lambda x: int(''.join(filter(str.isdigit, x[0]))) if any(c.isdigit() for c in x[0]) else 999)
@@ -247,6 +244,9 @@ with col1:
         # Split files into two lists for left and right columns
         total_files = len(sorted_files)
         mid_point = (total_files + 1) // 2
+        
+        # Create a single audio container
+        audio_container = st.empty()
         
         # Create columns for the 2-column grid layout
         left_col, right_col = st.columns(2)
@@ -266,18 +266,14 @@ with col1:
                     key=f"btn_{filename}",
                     help=button_label
                 ):
-                    # Convert audio file to base64
-                    audio_bytes = audio_file.read()
-                    audio_base64 = base64.b64encode(audio_bytes).decode()
-                    
-                    # Create auto-playing audio element
-                    audio_html = f"""
-                        <audio autoplay style="display: none">
-                            <source src="data:audio/mp3;base64,{audio_base64}" type="audio/mp3">
-                        </audio>
-                        """
-                    audio_player.markdown(audio_html, unsafe_allow_html=True)
-                    
+                    # Reset the audio file pointer
+                    audio_file.seek(0)
+                    # Update current audio
+                    st.session_state.current_audio = filename
+                    # Clear and play new audio
+                    audio_container.empty()
+                    audio_container.audio(audio_file, format='audio/mp3')
+        
         # Right column (second half of numbers)
         with right_col:
             for filename, audio_file in sorted_files[mid_point:]:
@@ -293,17 +289,13 @@ with col1:
                     key=f"btn_{filename}",
                     help=button_label
                 ):
-                    # Convert audio file to base64
-                    audio_bytes = audio_file.read()
-                    audio_base64 = base64.b64encode(audio_bytes).decode()
-                    
-                    # Create auto-playing audio element
-                    audio_html = f"""
-                        <audio autoplay style="display: none">
-                            <source src="data:audio/mp3;base64,{audio_base64}" type="audio/mp3">
-                        </audio>
-                        """
-                    audio_player.markdown(audio_html, unsafe_allow_html=True)
+                    # Reset the audio file pointer
+                    audio_file.seek(0)
+                    # Update current audio
+                    st.session_state.current_audio = filename
+                    # Clear and play new audio
+                    audio_container.empty()
+                    audio_container.audio(audio_file, format='audio/mp3')
     else:
         st.info("👆 Drop your audio files above to get started!")
         
