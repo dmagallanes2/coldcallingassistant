@@ -18,38 +18,64 @@ if 'audio_files' not in st.session_state:
     st.session_state.audio_files = {}
 if 'call_log' not in st.session_state:
     st.session_state.call_log = []
+if 'current_audio' not in st.session_state:
+    st.session_state.current_audio = None
 
 # Define PST timezone
 pst = pytz.timezone('America/Los_Angeles')
 
-# Custom CSS
+# Custom CSS for circular buttons and other styles
 st.markdown("""
     <style>
-    .stButton>button {
-        height: 100px;
-        white-space: normal;
-        padding: 15px;
+    .audio-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 1rem;
+        padding: 1rem;
+    }
+    .audio-button {
+        background-color: #f0f2f6;
+        border-radius: 50%;
+        width: 120px;
+        height: 120px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.3s;
+        margin: 10px;
+        padding: 10px;
+        text-align: center;
+    }
+    .audio-button:hover {
+        background-color: #e0e2e6;
+    }
+    .audio-title {
+        font-size: 0.8em;
+        margin-top: 5px;
+        word-wrap: break-word;
+        max-width: 100px;
+        text-align: center;
     }
     .stRadio > label {
         font-weight: bold;
         margin-bottom: 10px;
     }
+    div[data-testid="stAudioPlayer"] {
+        display: none;
+    }
     </style>
     """, unsafe_allow_html=True)
 
-def save_uploaded_file(uploaded_file):
-    """Save uploaded audio file and return the file path"""
-    save_dir = Path("uploads")
-    save_dir.mkdir(exist_ok=True)
-    
-    file_path = save_dir / uploaded_file.name
-    with open(file_path, "wb") as f:
-        f.write(uploaded_file.getbuffer())
-    return uploaded_file
+def save_uploaded_files(uploaded_files):
+    """Save multiple uploaded audio files"""
+    for uploaded_file in uploaded_files:
+        if uploaded_file.type == 'audio/mpeg':
+            st.session_state.audio_files[uploaded_file.name] = uploaded_file
 
 def log_call(business_name, notes, result, reason):
     """Add a new call to the call log with PST timestamp"""
-    # Get current time in PST
     timestamp = datetime.now(pst).strftime("%Y-%m-%d %H:%M:%S")
     st.session_state.call_log.append({
         "timestamp": timestamp,
@@ -70,7 +96,7 @@ def calculate_statistics(df):
     
     # Calculate time-based metrics
     time_diff = df['datetime'].max() - df['datetime'].min()
-    total_hours = time_diff.total_seconds() / 3600  # Convert to hours
+    total_hours = time_diff.total_seconds() / 3600
     calls_per_hour = total_calls / total_hours if total_hours > 0 else total_calls
     
     # Format time difference for display
@@ -137,35 +163,35 @@ col1, col2 = st.columns([2, 1])
 with col1:
     st.header("Audio Controls")
     
-    # File upload section
-    with st.expander("Upload New Audio Clip", expanded=True):
-        uploaded_file = st.file_uploader(
-            "Choose an MP3 file",
-            type=['mp3'],
-            key="file_uploader"
-        )
-        
-        if uploaded_file:
-            button_name = st.text_input(
-                "Enter a name for this audio clip",
-                value=uploaded_file.name.replace('.mp3', ''),
-                placeholder="e.g., Initial Pitch, Follow Up, Close"
-            )
-            
-            if st.button("Add Audio Clip"):
-                audio_file = save_uploaded_file(uploaded_file)
-                st.session_state.audio_files[button_name] = audio_file
-                st.success(f"✅ Added audio clip: {button_name}")
-                st.rerun()
+    # Multiple file upload section
+    uploaded_files = st.file_uploader(
+        "Drop all your audio files here",
+        type=['mp3'],
+        accept_multiple_files=True,
+        key="file_uploader"
+    )
+    
+    if uploaded_files:
+        save_uploaded_files(uploaded_files)
     
     # Audio playback section
     st.subheader("Play Audio Clips")
     if st.session_state.audio_files:
-        for button_name, audio_file in st.session_state.audio_files.items():
-            st.write(f"**{button_name}**")
-            st.audio(audio_file, format='audio/mp3')
+        cols = st.columns(4)
+        for idx, (filename, audio_file) in enumerate(st.session_state.audio_files.items()):
+            col = cols[idx % 4]
+            with col:
+                button_label = os.path.splitext(filename)[0]
+                if st.button(
+                    f"▶️\n{button_label}",
+                    key=f"btn_{filename}",
+                    help=f"Play {button_label}"
+                ):
+                    if st.session_state.current_audio != filename:
+                        st.session_state.current_audio = filename
+                        st.audio(audio_file, format='audio/mp3')
     else:
-        st.info("👆 Start by uploading some audio clips above!")
+        st.info("👆 Drop your audio files above to get started!")
 
 with col2:
     st.header("Call Logger")
