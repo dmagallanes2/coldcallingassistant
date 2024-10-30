@@ -26,7 +26,7 @@ if 'audio_states' not in st.session_state:
 # Define PST timezone
 pst = pytz.timezone('America/Los_Angeles')
 
-# Enhanced CSS with vibrant colors and consistent sizing
+# Enhanced CSS with white titles and larger buttons
 st.markdown("""
     <style>
     /* Main container styling */
@@ -34,24 +34,32 @@ st.markdown("""
         background-color: #f8f9fa;
     }
     
-    /* Grid layout for audio buttons */
-    .stColumns {
-        gap: 1rem;
+    /* Header styling - keeping main titles white */
+    .main h1, .main h2, .main h3 {
+        color: white !important;
+    }
+    
+    /* Subheader styling - for section titles */
+    .main .block-container h3 {
+        color: #4834d4 !important;
+        margin-top: 1rem;
+        margin-bottom: 1rem;
     }
     
     /* Audio button styling */
     .stButton > button {
-        width: 150px !important;
-        height: 150px !important;
+        width: 300px !important;
+        height: 300px !important;
         border-radius: 50% !important;
         background: linear-gradient(145deg, #6c63ff, #4834d4) !important;
         border: none !important;
         color: white !important;
         font-weight: bold !important;
+        font-size: 24px !important;
         box-shadow: 0 4px 15px rgba(0,0,0,0.1) !important;
         transition: all 0.3s ease !important;
         padding: 0 !important;
-        margin: 10px auto !important;
+        margin: 20px auto !important;
         display: flex !important;
         flex-direction: column !important;
         align-items: center !important;
@@ -73,9 +81,13 @@ st.markdown("""
         box-shadow: 0 2px 10px rgba(0,0,0,0.1) !important;
     }
     
-    /* Hide default audio player */
+    /* Completely hide audio elements */
     div[data-testid="stAudioPlayer"] {
-        display: none;
+        display: none !important;
+        height: 0 !important;
+        width: 0 !important;
+        position: absolute !important;
+        pointer-events: none !important;
     }
     
     /* Radio button styling */
@@ -99,17 +111,18 @@ st.markdown("""
         border-radius: 5px;
     }
 
-    /* Header styling */
-    h1, h2, h3 {
-        color: #4834d4 !important;
-    }
-    
     /* File uploader styling */
     .uploadedFile {
         background-color: #f8f9fa;
         border-radius: 10px;
         padding: 10px;
         margin-bottom: 10px;
+    }
+    
+    /* Grid layout for 2-column buttons */
+    .row-widget.stHorizontalBlock {
+        gap: 2rem !important;
+        justify-content: center !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -226,15 +239,15 @@ with col1:
         # Create hidden container for audio elements
         audio_placeholder = st.empty()
         
-        # Create columns for the grid layout
-        cols = st.columns(4)
+        # Create columns for the 2-column grid layout
+        cols = st.columns(2)
         for idx, (filename, audio_file) in enumerate(st.session_state.audio_files.items()):
-            col = cols[idx % 4]
+            col = cols[idx % 2]
             with col:
                 button_label = os.path.splitext(filename)[0]
                 # Truncate long names
-                if len(button_label) > 15:
-                    display_label = button_label[:12] + "..."
+                if len(button_label) > 20:
+                    display_label = button_label[:17] + "..."
                 else:
                     display_label = button_label
                 
@@ -243,9 +256,8 @@ with col1:
                     key=f"btn_{filename}",
                     help=button_label
                 ):
-                    # Stop current audio (if any) by clearing the placeholder
+                    # Clear previous audio and play new
                     audio_placeholder.empty()
-                    # Play new audio
                     if st.session_state.current_audio != filename:
                         st.session_state.current_audio = filename
                         audio_placeholder.audio(audio_file, format='audio/mp3')
@@ -280,7 +292,7 @@ with col2:
         if submitted and business_name:
             log_call(business_name, notes, result, reason)
             st.success("✅ Call logged successfully!")
-    
+            
     # Display call log
     if st.session_state.call_log:
         st.subheader("Recent Calls")
