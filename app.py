@@ -239,11 +239,41 @@ with col1:
         # Create hidden container for audio elements
         audio_placeholder = st.empty()
         
+        # Sort files numerically
+        sorted_files = sorted(st.session_state.audio_files.items(), 
+                            key=lambda x: int(''.join(filter(str.isdigit, x[0]))) if any(c.isdigit() for c in x[0]) else 999)
+        
+        # Split files into two lists for left and right columns
+        total_files = len(sorted_files)
+        mid_point = (total_files + 1) // 2  # Using ceiling division to handle odd numbers
+        
         # Create columns for the 2-column grid layout
-        cols = st.columns(2)
-        for idx, (filename, audio_file) in enumerate(st.session_state.audio_files.items()):
-            col = cols[idx % 2]
-            with col:
+        left_col, right_col = st.columns(2)
+        
+        # Left column (first half of numbers)
+        with left_col:
+            for filename, audio_file in sorted_files[:mid_point]:
+                button_label = os.path.splitext(filename)[0]
+                # Truncate long names
+                if len(button_label) > 20:
+                    display_label = button_label[:17] + "..."
+                else:
+                    display_label = button_label
+                
+                if st.button(
+                    f"🎵\n{display_label}",
+                    key=f"btn_{filename}",
+                    help=button_label
+                ):
+                    # Clear previous audio and play new
+                    audio_placeholder.empty()
+                    if st.session_state.current_audio != filename:
+                        st.session_state.current_audio = filename
+                        audio_placeholder.audio(audio_file, format='audio/mp3')
+        
+        # Right column (second half of numbers)
+        with right_col:
+            for filename, audio_file in sorted_files[mid_point:]:
                 button_label = os.path.splitext(filename)[0]
                 # Truncate long names
                 if len(button_label) > 20:
