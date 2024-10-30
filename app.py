@@ -6,6 +6,8 @@ from datetime import datetime
 import io
 import pytz
 import base64
+from pygame import mixer
+import time
 
 # Set page configuration
 st.set_page_config(
@@ -234,11 +236,11 @@ with col1:
     if uploaded_files:
         save_uploaded_files(uploaded_files)
     
-    # Audio playback section
+# Audio playback section
     st.subheader("Play Audio Clips")
     if st.session_state.audio_files:
-        # Hidden container for audio
-        audio_container = st.empty()
+        # Initialize pygame mixer
+        mixer.init()
         
         # Sort files numerically
         sorted_files = sorted(st.session_state.audio_files.items(), 
@@ -266,20 +268,15 @@ with col1:
                     key=f"btn_{filename}",
                     help=button_label
                 ):
-                    # Reset file pointer
-                    audio_file.seek(0)
-                    # Read audio file
-                    audio_bytes = audio_file.read()
-                    # Encode to base64
-                    audio_base64 = base64.b64encode(audio_bytes).decode()
-                    
-                    # Create autoplay audio element
-                    audio_html = f"""
-                        <audio autoplay="true" style="display: none">
-                            <source src="data:audio/mp3;base64,{audio_base64}" type="audio/mp3">
-                        </audio>
-                        """
-                    audio_container.markdown(audio_html, unsafe_allow_html=True)
+                    # Stop any playing audio
+                    mixer.music.stop()
+                    # Create temporary file for pygame
+                    with tempfile.NamedTemporaryFile(delete=False, suffix='.mp3') as temp_file:
+                        temp_file.write(audio_file.getbuffer())
+                        audio_file.seek(0)
+                        # Load and play audio
+                        mixer.music.load(temp_file.name)
+                        mixer.music.play()
         
         # Right column (second half of numbers)
         with right_col:
@@ -296,20 +293,15 @@ with col1:
                     key=f"btn_{filename}",
                     help=button_label
                 ):
-                    # Reset file pointer
-                    audio_file.seek(0)
-                    # Read audio file
-                    audio_bytes = audio_file.read()
-                    # Encode to base64
-                    audio_base64 = base64.b64encode(audio_bytes).decode()
-                    
-                    # Create autoplay audio element
-                    audio_html = f"""
-                        <audio autoplay="true" style="display: none">
-                            <source src="data:audio/mp3;base64,{audio_base64}" type="audio/mp3">
-                        </audio>
-                        """
-                    audio_container.markdown(audio_html, unsafe_allow_html=True)
+                    # Stop any playing audio
+                    mixer.music.stop()
+                    # Create temporary file for pygame
+                    with tempfile.NamedTemporaryFile(delete=False, suffix='.mp3') as temp_file:
+                        temp_file.write(audio_file.getbuffer())
+                        audio_file.seek(0)
+                        # Load and play audio
+                        mixer.music.load(temp_file.name)
+                        mixer.music.play()
     else:
         st.info("👆 Drop your audio files above to get started!")
         
