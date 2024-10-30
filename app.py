@@ -239,11 +239,7 @@ with col1:
     # Audio playback section
     st.subheader("Play Audio Clips")
     if st.session_state.audio_files:
-        # Add unique identifier for audio container
-        if 'container_id' not in st.session_state:
-            st.session_state.container_id = 0
-        
-        # Create container for audio player
+        # Create single container for audio player at the top
         audio_container = st.empty()
         
         # Sort files numerically
@@ -259,7 +255,7 @@ with col1:
         
         # Left column (first half of numbers)
         with left_col:
-            for idx, (filename, audio_file) in enumerate(sorted_files[:mid_point]):
+            for filename, audio_file in sorted_files[:mid_point]:
                 button_label = os.path.splitext(filename)[0]
                 # Truncate long names
                 if len(button_label) > 20:
@@ -272,36 +268,15 @@ with col1:
                     key=f"btn_{filename}",
                     help=button_label
                 ):
-                    # Increment container ID to force refresh
-                    st.session_state.container_id += 1
-                    
-                    # Read audio file and encode to base64
-                    audio_bytes = audio_file.read()
-                    audio_base64 = base64.b64encode(audio_bytes).decode()
-                    audio_file.seek(0)  # Reset file pointer
-                    
-                    # Create audio element with unique ID and autoplay
-                    audio_html = f"""
-                    <audio id="audio_{st.session_state.container_id}" autoplay="true">
-                        <source src="data:audio/mp3;base64,{audio_base64}" type="audio/mp3">
-                    </audio>
-                    <script>
-                        // Get all audio elements
-                        var audios = document.getElementsByTagName('audio');
-                        // Stop all other audio elements
-                        for(var i = 0; i < audios.length; i++) {{
-                            if(audios[i].id !== "audio_{st.session_state.container_id}") {{
-                                audios[i].pause();
-                                audios[i].currentTime = 0;
-                            }}
-                        }}
-                    </script>
-                    """
-                    audio_container.markdown(audio_html, unsafe_allow_html=True)
+                    # Reset file pointer
+                    audio_file.seek(0)
+                    # Clear previous audio and set new
+                    audio_container.empty()
+                    audio_container.audio(audio_file, format='audio/mp3')
         
         # Right column (second half of numbers)
         with right_col:
-            for idx, (filename, audio_file) in enumerate(sorted_files[mid_point:], start=mid_point):
+            for filename, audio_file in sorted_files[mid_point:]:
                 button_label = os.path.splitext(filename)[0]
                 # Truncate long names
                 if len(button_label) > 20:
@@ -314,32 +289,11 @@ with col1:
                     key=f"btn_{filename}",
                     help=button_label
                 ):
-                    # Increment container ID to force refresh
-                    st.session_state.container_id += 1
-                    
-                    # Read audio file and encode to base64
-                    audio_bytes = audio_file.read()
-                    audio_base64 = base64.b64encode(audio_bytes).decode()
-                    audio_file.seek(0)  # Reset file pointer
-                    
-                    # Create audio element with unique ID and autoplay
-                    audio_html = f"""
-                    <audio id="audio_{st.session_state.container_id}" autoplay="true">
-                        <source src="data:audio/mp3;base64,{audio_base64}" type="audio/mp3">
-                    </audio>
-                    <script>
-                        // Get all audio elements
-                        var audios = document.getElementsByTagName('audio');
-                        // Stop all other audio elements
-                        for(var i = 0; i < audios.length; i++) {{
-                            if(audios[i].id !== "audio_{st.session_state.container_id}") {{
-                                audios[i].pause();
-                                audios[i].currentTime = 0;
-                            }}
-                        }}
-                    </script>
-                    """
-                    audio_container.markdown(audio_html, unsafe_allow_html=True)
+                    # Reset file pointer
+                    audio_file.seek(0)
+                    # Clear previous audio and set new
+                    audio_container.empty()
+                    audio_container.audio(audio_file, format='audio/mp3')
     else:
         st.info("👆 Drop your audio files above to get started!")
         
