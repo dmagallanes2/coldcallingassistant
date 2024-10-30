@@ -239,12 +239,12 @@ with col1:
     # Audio playback section
     st.subheader("Play Audio Clips")
     if st.session_state.audio_files:
+        # Add unique identifier for audio container
+        if 'container_id' not in st.session_state:
+            st.session_state.container_id = 0
+        
         # Create container for audio player
         audio_container = st.empty()
-        
-        # Initialize session state for currently playing audio
-        if 'current_audio_id' not in st.session_state:
-            st.session_state.current_audio_id = None
         
         # Sort files numerically
         sorted_files = sorted(st.session_state.audio_files.items(), 
@@ -253,28 +253,6 @@ with col1:
         # Split files into two lists for left and right columns
         total_files = len(sorted_files)
         mid_point = (total_files + 1) // 2
-        
-        # Insert JavaScript for audio control
-        st.markdown("""
-            <script>
-                var currentAudio = null;
-                
-                function stopCurrentAudio() {
-                    if (currentAudio) {
-                        currentAudio.pause();
-                        currentAudio.currentTime = 0;
-                    }
-                }
-                
-                function playNewAudio(elementId) {
-                    stopCurrentAudio();
-                    currentAudio = document.getElementById(elementId);
-                    if (currentAudio) {
-                        currentAudio.play();
-                    }
-                }
-            </script>
-            """, unsafe_allow_html=True)
         
         # Create columns for the 2-column grid layout
         left_col, right_col = st.columns(2)
@@ -294,18 +272,30 @@ with col1:
                     key=f"btn_{filename}",
                     help=button_label
                 ):
+                    # Increment container ID to force refresh
+                    st.session_state.container_id += 1
+                    
                     # Read audio file and encode to base64
                     audio_bytes = audio_file.read()
                     audio_base64 = base64.b64encode(audio_bytes).decode()
                     audio_file.seek(0)  # Reset file pointer
                     
-                    # Create hidden audio element with autoplay
+                    # Create audio element with unique ID and autoplay
                     audio_html = f"""
-                    <div style="display: none;">
-                        <audio id="audio_{idx}" autoplay>
-                            <source src="data:audio/mp3;base64,{audio_base64}" type="audio/mp3">
-                        </audio>
-                    </div>
+                    <audio id="audio_{st.session_state.container_id}" autoplay="true">
+                        <source src="data:audio/mp3;base64,{audio_base64}" type="audio/mp3">
+                    </audio>
+                    <script>
+                        // Get all audio elements
+                        var audios = document.getElementsByTagName('audio');
+                        // Stop all other audio elements
+                        for(var i = 0; i < audios.length; i++) {{
+                            if(audios[i].id !== "audio_{st.session_state.container_id}") {{
+                                audios[i].pause();
+                                audios[i].currentTime = 0;
+                            }}
+                        }}
+                    </script>
                     """
                     audio_container.markdown(audio_html, unsafe_allow_html=True)
         
@@ -324,18 +314,30 @@ with col1:
                     key=f"btn_{filename}",
                     help=button_label
                 ):
+                    # Increment container ID to force refresh
+                    st.session_state.container_id += 1
+                    
                     # Read audio file and encode to base64
                     audio_bytes = audio_file.read()
                     audio_base64 = base64.b64encode(audio_bytes).decode()
                     audio_file.seek(0)  # Reset file pointer
                     
-                    # Create hidden audio element with autoplay
+                    # Create audio element with unique ID and autoplay
                     audio_html = f"""
-                    <div style="display: none;">
-                        <audio id="audio_{idx}" autoplay>
-                            <source src="data:audio/mp3;base64,{audio_base64}" type="audio/mp3">
-                        </audio>
-                    </div>
+                    <audio id="audio_{st.session_state.container_id}" autoplay="true">
+                        <source src="data:audio/mp3;base64,{audio_base64}" type="audio/mp3">
+                    </audio>
+                    <script>
+                        // Get all audio elements
+                        var audios = document.getElementsByTagName('audio');
+                        // Stop all other audio elements
+                        for(var i = 0; i < audios.length; i++) {{
+                            if(audios[i].id !== "audio_{st.session_state.container_id}") {{
+                                audios[i].pause();
+                                audios[i].currentTime = 0;
+                            }}
+                        }}
+                    </script>
                     """
                     audio_container.markdown(audio_html, unsafe_allow_html=True)
     else:
