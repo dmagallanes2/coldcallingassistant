@@ -20,50 +20,96 @@ if 'call_log' not in st.session_state:
     st.session_state.call_log = []
 if 'current_audio' not in st.session_state:
     st.session_state.current_audio = None
+if 'audio_states' not in st.session_state:
+    st.session_state.audio_states = {}
 
 # Define PST timezone
 pst = pytz.timezone('America/Los_Angeles')
 
-# Custom CSS for circular buttons and other styles
+# Enhanced CSS with vibrant colors and consistent sizing
 st.markdown("""
     <style>
-    .audio-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    /* Main container styling */
+    .main {
+        background-color: #f8f9fa;
+    }
+    
+    /* Grid layout for audio buttons */
+    .stColumns {
         gap: 1rem;
-        padding: 1rem;
     }
-    .audio-button {
-        background-color: #f0f2f6;
-        border-radius: 50%;
-        width: 120px;
-        height: 120px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        transition: all 0.3s;
-        margin: 10px;
-        padding: 10px;
-        text-align: center;
+    
+    /* Audio button styling */
+    .stButton > button {
+        width: 150px !important;
+        height: 150px !important;
+        border-radius: 50% !important;
+        background: linear-gradient(145deg, #6c63ff, #4834d4) !important;
+        border: none !important;
+        color: white !important;
+        font-weight: bold !important;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1) !important;
+        transition: all 0.3s ease !important;
+        padding: 0 !important;
+        margin: 10px auto !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        position: relative !important;
+        overflow: hidden !important;
     }
-    .audio-button:hover {
-        background-color: #e0e2e6;
+    
+    /* Hover effect */
+    .stButton > button:hover {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 6px 20px rgba(0,0,0,0.15) !important;
+        background: linear-gradient(145deg, #4834d4, #6c63ff) !important;
     }
-    .audio-title {
-        font-size: 0.8em;
-        margin-top: 5px;
-        word-wrap: break-word;
-        max-width: 100px;
-        text-align: center;
+    
+    /* Active/Playing state */
+    .stButton > button:active {
+        transform: translateY(1px) !important;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1) !important;
     }
+    
+    /* Hide default audio player */
+    div[data-testid="stAudioPlayer"] {
+        display: none;
+    }
+    
+    /* Radio button styling */
     .stRadio > label {
         font-weight: bold;
         margin-bottom: 10px;
+        color: #4834d4;
     }
-    div[data-testid="stAudioPlayer"] {
-        display: none;
+    
+    /* Form styling */
+    .stForm {
+        background-color: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+    
+    /* Success message styling */
+    .element-container div[data-testid="stMarkdownContainer"] p {
+        padding: 10px;
+        border-radius: 5px;
+    }
+
+    /* Header styling */
+    h1, h2, h3 {
+        color: #4834d4 !important;
+    }
+    
+    /* File uploader styling */
+    .uploadedFile {
+        background-color: #f8f9fa;
+        border-radius: 10px;
+        padding: 10px;
+        margin-bottom: 10px;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -177,19 +223,32 @@ with col1:
     # Audio playback section
     st.subheader("Play Audio Clips")
     if st.session_state.audio_files:
+        # Create hidden container for audio elements
+        audio_placeholder = st.empty()
+        
+        # Create columns for the grid layout
         cols = st.columns(4)
         for idx, (filename, audio_file) in enumerate(st.session_state.audio_files.items()):
             col = cols[idx % 4]
             with col:
                 button_label = os.path.splitext(filename)[0]
+                # Truncate long names
+                if len(button_label) > 15:
+                    display_label = button_label[:12] + "..."
+                else:
+                    display_label = button_label
+                
                 if st.button(
-                    f"▶️\n{button_label}",
+                    f"🎵\n{display_label}",
                     key=f"btn_{filename}",
-                    help=f"Play {button_label}"
+                    help=button_label
                 ):
+                    # Stop current audio (if any) by clearing the placeholder
+                    audio_placeholder.empty()
+                    # Play new audio
                     if st.session_state.current_audio != filename:
                         st.session_state.current_audio = filename
-                        st.audio(audio_file, format='audio/mp3')
+                        audio_placeholder.audio(audio_file, format='audio/mp3')
     else:
         st.info("👆 Drop your audio files above to get started!")
 
