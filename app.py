@@ -29,7 +29,6 @@ if 'audio_states' not in st.session_state:
 # Define PST timezone
 pst = pytz.timezone('America/Los_Angeles')
 
-# Enhanced CSS with white titles and larger buttons
 st.markdown("""
     <style>
     /* Main container styling */
@@ -37,16 +36,26 @@ st.markdown("""
         background-color: #f8f9fa;
     }
     
-    /* Header styling - keeping main titles white */
-    .main h1, .main h2, .main h3 {
+    /* Header styling - all headers white */
+    .main h1, .main h2, .main h3, .stHeadingContainer {
         color: white !important;
     }
     
-    /* Subheader styling - for section titles */
-    .main .block-container h3 {
-        color: #4834d4 !important;
-        margin-top: 1rem;
-        margin-bottom: 1rem;
+    /* Form headers and labels white */
+    .stRadio > label, .stTextArea > label, .stTextInput > label {
+        color: white !important;
+        font-weight: bold !important;
+        margin-bottom: 10px !important;
+    }
+    
+    /* Radio button styling - light blue */
+    .stRadio input[type="radio"]:checked + div {
+        background-color: #60A5FA !important;
+        border-color: #60A5FA !important;
+    }
+    
+    .stRadio input[type="radio"] + div {
+        border-color: #60A5FA !important;
     }
     
     /* Audio button styling */
@@ -84,20 +93,11 @@ st.markdown("""
         box-shadow: 0 2px 10px rgba(0,0,0,0.1) !important;
     }
     
-    /* Completely hide audio elements */
-    div[data-testid="stAudioPlayer"] {
-        display: none !important;
-        height: 0 !important;
-        width: 0 !important;
-        position: absolute !important;
-        pointer-events: none !important;
-    }
-    
-    /* Radio button styling */
-    .stRadio > label {
-        font-weight: bold;
-        margin-bottom: 10px;
-        color: #4834d4;
+    /* Audio player styling */
+    audio {
+        width: 100%;
+        max-width: 300px;
+        margin-top: 10px;
     }
     
     /* Form styling */
@@ -239,9 +239,6 @@ with col1:
     # Audio playback section
     st.subheader("Play Audio Clips")
     if st.session_state.audio_files:
-        # Create single container for audio player at the top
-        audio_container = st.empty()
-        
         # Sort files numerically
         sorted_files = sorted(st.session_state.audio_files.items(), 
                             key=lambda x: int(''.join(filter(str.isdigit, x[0]))) if any(c.isdigit() for c in x[0]) else 999)
@@ -256,44 +253,50 @@ with col1:
         # Left column (first half of numbers)
         with left_col:
             for filename, audio_file in sorted_files[:mid_point]:
-                button_label = os.path.splitext(filename)[0]
-                # Truncate long names
-                if len(button_label) > 20:
-                    display_label = button_label[:17] + "..."
-                else:
-                    display_label = button_label
+                # Create a container for each button and its audio player
+                button_container = st.container()
                 
-                if st.button(
-                    f"🎵\n{display_label}",
-                    key=f"btn_{filename}",
-                    help=button_label
-                ):
-                    # Reset file pointer
-                    audio_file.seek(0)
-                    # Clear previous audio and set new
-                    audio_container.empty()
-                    audio_container.audio(audio_file, format='audio/mp3')
+                with button_container:
+                    button_label = os.path.splitext(filename)[0]
+                    # Truncate long names
+                    if len(button_label) > 20:
+                        display_label = button_label[:17] + "..."
+                    else:
+                        display_label = button_label
+                    
+                    if st.button(
+                        f"🎵\n{display_label}",
+                        key=f"btn_{filename}",
+                        help=button_label
+                    ):
+                        # Reset file pointer
+                        audio_file.seek(0)
+                        # Show audio player under this button
+                        st.audio(audio_file, format='audio/mp3')
         
         # Right column (second half of numbers)
         with right_col:
             for filename, audio_file in sorted_files[mid_point:]:
-                button_label = os.path.splitext(filename)[0]
-                # Truncate long names
-                if len(button_label) > 20:
-                    display_label = button_label[:17] + "..."
-                else:
-                    display_label = button_label
+                # Create a container for each button and its audio player
+                button_container = st.container()
                 
-                if st.button(
-                    f"🎵\n{display_label}",
-                    key=f"btn_{filename}",
-                    help=button_label
-                ):
-                    # Reset file pointer
-                    audio_file.seek(0)
-                    # Clear previous audio and set new
-                    audio_container.empty()
-                    audio_container.audio(audio_file, format='audio/mp3')
+                with button_container:
+                    button_label = os.path.splitext(filename)[0]
+                    # Truncate long names
+                    if len(button_label) > 20:
+                        display_label = button_label[:17] + "..."
+                    else:
+                        display_label = button_label
+                    
+                    if st.button(
+                        f"🎵\n{display_label}",
+                        key=f"btn_{filename}",
+                        help=button_label
+                    ):
+                        # Reset file pointer
+                        audio_file.seek(0)
+                        # Show audio player under this button
+                        st.audio(audio_file, format='audio/mp3')
     else:
         st.info("👆 Drop your audio files above to get started!")
         
